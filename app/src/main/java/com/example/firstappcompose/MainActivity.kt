@@ -1,13 +1,15 @@
 package com.example.firstappcompose
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -32,25 +34,38 @@ class MainActivity : ComponentActivity() {
             registeredUsername = data?.getStringExtra("username")
             registeredEmail = data?.getStringExtra("email")
             registeredPassword = data?.getStringExtra("password")
-            //Toast.makeText(this, "Account created successfully", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val sharedPref = getSharedPreferences("myPref", Context.MODE_PRIVATE)
+        val sharedPrefEmail = sharedPref.getString("email", "") ?: ""
+        val isDarkTheme = sharedPref.getBoolean("darkTheme", false)
+
         setContent {
-            FirstappcomposeTheme {
+            FirstappcomposeTheme(darkTheme = isDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    LoginScreen(onLoginSuccess = { username ->
-                        val intent = Intent(this, HomeActivity::class.java)
-                        intent.putExtra("username", username)
-                        startActivity(intent)
-                    }, onRegisterClick = {
-                        val intent = Intent(this, RegisterActivity::class.java)
-                        registerActivityLauncher.launch(intent)
-                    }, getRegisteredCredentials = {
-                        Triple(registeredEmail, registeredPassword, registeredUsername)
-                    })
+                    LoginScreen(
+                        initialEmail = sharedPrefEmail,
+                        onLoginSuccess = { username ->
+                            val intent = Intent(this, HomeActivity::class.java)
+                            intent.putExtra("username", username)
+                            startActivity(intent)
+                        },
+                        onRegisterClick = {
+                            val intent = Intent(this, RegisterActivity::class.java)
+                            registerActivityLauncher.launch(intent)
+                        },
+                        onSettingsClick = {
+                            val intent = Intent(this, SettingActivity::class.java)
+                            startActivity(intent)
+                        },
+                        getRegisteredCredentials = {
+                            Triple(registeredEmail, registeredPassword, registeredUsername)
+                        }
+                    )
                 }
             }
         }
@@ -61,69 +76,82 @@ class MainActivity : ComponentActivity() {
 fun LoginScreen(
     onLoginSuccess: (String?) -> Unit,
     onRegisterClick: () -> Unit,
-    getRegisteredCredentials: () -> Triple<String?, String?, String?>
+    onSettingsClick: () -> Unit, // NEW callback
+    getRegisteredCredentials: () -> Triple<String?, String?, String?>,
+    initialEmail: String = ""
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf(initialEmail) }
     var password by rememberSaveable { mutableStateOf("") }
     var errorVisible by remember { mutableStateOf(false) }
 
     val (registeredEmail, registeredPassword, registeredUsername) = getRegisteredCredentials()
 
-    Column(
+    Box(
         modifier = Modifier
+            .fillMaxSize()
             .padding(24.dp)
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(90.dp))
-
-        Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(Modifier.height(34.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(28.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(28.dp))
-
-        Button(
-            onClick = {
-                if (email == registeredEmail && password == registeredPassword) {
-                    onLoginSuccess(registeredUsername)
-                } else {
-                    errorVisible = true
-                }
-            }, modifier = Modifier.fillMaxWidth()
+        IconButton(
+            onClick = { onSettingsClick() },
+            modifier = Modifier.align(Alignment.TopEnd)
         ) {
-            Text("Login")
+            Icon(Icons.Default.Settings, contentDescription = "Settings")
         }
 
-        if (errorVisible) {
-            Spacer(Modifier.height(16.dp))
-            Text("Invalid email or password", color = Color.Red)
-        }
+        Column(
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Spacer(Modifier.height(90.dp))
 
-        Spacer(Modifier.height(140.dp))
+            Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
 
-        TextButton(onClick = onRegisterClick) {
-            Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(34.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            Button(
+                onClick = {
+                    if (email == registeredEmail && password == registeredPassword) {
+                        onLoginSuccess(registeredUsername)
+                    } else {
+                        errorVisible = true
+                    }
+                }, modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Login")
+            }
+
+            if (errorVisible) {
+                Spacer(Modifier.height(16.dp))
+                Text("Invalid email or password", color = Color.Red)
+            }
+
+            Spacer(Modifier.height(140.dp))
+
+            TextButton(onClick = onRegisterClick) {
+                Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }

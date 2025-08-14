@@ -1,6 +1,7 @@
 package com.example.firstappcompose
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,8 +19,10 @@ import com.example.firstappcompose.ui.theme.FirstappcomposeTheme
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val sharedPref = getSharedPreferences("myPref", Context.MODE_PRIVATE)
+        val isDarkTheme = sharedPref.getBoolean("darkTheme", false)
         setContent {
-            FirstappcomposeTheme {
+            FirstappcomposeTheme(darkTheme = isDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     RegisterScreen(
                         onRegisterSuccess = { username, email, password ->
